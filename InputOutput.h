@@ -29,4 +29,6 @@ void OutputScaledKnotNP(Link& CurveNP);
 // Output the grid of omega values computed to a file with user specified filename, in legacy .vtk format
 void OutputSolidAngle(const Link& Curve,const std::vector<double>& omega,const std::string filename);
 
+void writeVTKFiles();
+float FloatSwap( float f );
 #endif

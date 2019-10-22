@@ -164,9 +164,9 @@ void ScaleKnot(Link& Curve)
 
 void ScaleFunction(double *scale, double maxxin, double minxin, double maxyin, double minyin, double maxzin, double minzin)
 {
-     scale[0] = BoxFractionx/( (maxxin-minxin)/(Nx*h) );
-     scale[1] = BoxFractiony/( (maxyin-minyin)/(Ny*h) );
-     scale[2] = BoxFractionz/( (maxzin-minzin)/(Nz*h) );
+     scale[0] = BoxFractionx/( (maxxin-minxin)/(Nx) );
+     scale[1] = BoxFractiony/( (maxyin-minyin)/(Ny) );
+     scale[2] = BoxFractionz/( (maxzin-minzin)/(Nz) );
     if(ScaleProportionally)
     {
         double minscale = scale[0];

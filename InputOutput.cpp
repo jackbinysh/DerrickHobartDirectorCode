@@ -1,4 +1,5 @@
 #include "InputOutput.h"
+#include "nematic.h"
 #include "Constants.h"
 #include "SolidAngle.h"
 
@@ -29,15 +30,6 @@ int InitialiseSystemParameters()
             ss << buff;
             getline(ss,buff2,'=');
             ss >> NumRefinements;
-        }
-        ss.str("");
-        ss.clear();
-
-        if(getline(CurveInputStream,buff))
-        {
-            ss << buff;
-            getline(ss,buff2,'=');
-            ss >> h;
         }
         ss.str("");
         ss.clear();
@@ -318,7 +310,7 @@ void OutputSolidAngle(const Link& Curve,const vector<double>& omega,const string
     Aout << "# vtk DataFile Version 3.0\nKnot\nASCII\nDATASET STRUCTURED_POINTS\n";
     Aout << "DIMENSIONS " << Nx << ' ' << Ny << ' ' << Nz << '\n';
     Aout << "ORIGIN " << x(0) << ' ' << y(0) << ' ' << z(0) << '\n';
-    Aout << "SPACING " << h << ' ' << h << ' ' << h << '\n';
+    Aout << "SPACING " << 1 << ' ' << 1 << ' ' << 1 << '\n';
     Aout << "POINT_DATA " << Nx*Ny*Nz << '\n';
     Aout << "SCALARS omega float\nLOOKUP_TABLE default\n";
     for(int k=0; k<Nz; k++)
@@ -387,3 +379,52 @@ void OutputScaledKnotNP(Link& CurveNP)
   knotout.close();
 }
 
+void writeVTKFiles()
+{
+  // now lets write things, in binary 
+  FILE *file;
+  string fn = output_dir + "/"+RunName+"_"+to_string(n)+".vtk";
+  file=fopen(fn.c_str(),"w");
+  fprintf(file,"# vtk DataFile Version 3.0\nKnot\nBINARY\nDATASET STRUCTURED_POINTS\n");
+  fprintf(file,"DIMENSIONS %d %d %d\n",Nx,Ny,Nz);
+  fprintf(file,"ORIGIN 0 0 0\n");
+  fprintf(file,"SPACING 1 1 1\n");
+  fprintf(file,"POINT_DATA %d\n",LL);
+  fprintf(file,"VECTORS n float\n");
+
+  float temp[3];
+  for(int l=0; l<LL; l++){
+    temp[0]=nx[l];
+    temp[1]=ny[l];
+    temp[2]=nz[l];
+    // go to bigendian
+    float temp0 = FloatSwap(temp[0]); 
+    temp[0]=temp0;
+    float temp1 = FloatSwap(temp[1]);
+    temp[1]=temp1;
+    float temp2 = FloatSwap(temp[2]);
+    temp[2]=temp2;
+
+    fwrite(temp,sizeof(float),3,file);
+  };
+  fclose(file);
+
+
+} // end writeVTKFiles
+
+// Function to take a little-endian encoded float and make it big-endian (or vice versa). Useful for reading to paraview
+float FloatSwap( float f )
+{
+    union
+    {
+        float f;
+        char b[4];
+    } dat1, dat2;
+
+    dat1.f = f;
+    dat2.b[0] = dat1.b[3];
+    dat2.b[1] = dat1.b[2];
+    dat2.b[2] = dat1.b[1];
+    dat2.b[3] = dat1.b[0];
+    return dat2.f;
+}

@@ -339,17 +339,17 @@ int incp(int i, int p, int N)
 
 double x(int i)
 {
-    return (i+0.5-Nx/2.0)*h;
+    return (i+0.5-Nx/2.0);
 }
 
 double y(int j)
 {
-    return (j+0.5-Ny/2.0)*h;
+    return (j+0.5-Ny/2.0);
 }
 
 double z(int k)
 {
-    return (k+0.5-Nz/2.0)*h;
+    return (k+0.5-Nz/2.0);
 }
 
 int pt( int i,  int j,  int k)

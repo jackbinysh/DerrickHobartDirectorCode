@@ -3,6 +3,7 @@
 /*      created April 2019: Jack Binysh, Gareth Alexander     */
 /**************************************************************/
 
+#include "nematic.h"    
 #include "SolidAngle.h"    
 #include "Geometry.h"
 #include "InputOutput.h"
@@ -14,6 +15,7 @@
 #include <iomanip>
 //#include <complex>
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <vector>
 
@@ -23,47 +25,42 @@
 
 using namespace std;
 
-// ============================================================
-
-const int Nmax = 5000;       // Number of timesteps
-const int stepskip = 5000;    // print director file every stepskip timesteps
-
-// ============================================================
-
 /* functions */
 void initialise(void);
 void startconfig(void);
 void update(void);
-void writeVTKFiles(void);
 // modified numerical recipes routine
 #define n 3     
 void jacobi(double (*a)[n], double d[], double (*v)[n], int *nrot);
 #undef n
 
-/* global variables */
+#define BC 1 // Dirichlet boundary conditions on (1) or off (0)
+
 int n,LL;
-double koverk2,q0,Gamma,dt;
 double *nx,*ny,*nz;
 double *hx,*hy,*hz;
-
-#define BC 1 // Dirichlet boundary conditions on (1) or off (0)
+double K1mK2,K3mK2;
+double q0;
+std::string RunName;
 
 //int main(int argc, char** argv) 
 int main (int argc, char*argv[])
 {
-  float doverp=(float) atof(args[1]);
-  koverk2 = atof(args[2]); 
-  Nx=(int) atoi(args[3]);
-  Ny=(int) atoi(args[4]);
-  Nz=(int) atoi(args[5]);
-  output_directory = str(args[6]);
-  knot_filename= str(args[7]);
-  
+  double doverp=(double) atof(argv[1]);
+  double koverk2 = atof(argv[2]); 
+  Nx=(int) atoi(argv[3]);
+  Ny=(int) atoi(argv[4]);
+  Nz=(int) atoi(argv[5]);
+  output_dir = string(argv[6]);
+  knot_filename= string(argv[7]);
+  // set the elastic constants
+  K1mK2 = (K1overK2)*K - K;  
+  // K1 and K3 are the same
+  K3mK2 =K1mK2;
+  // set the chirality
   q0=(2.f*M_PI/(float)(Nz))*doverp;
-  
-  Gamma = 0.65;     // relaxation constant
-  dt = 1.0;        // integration timestep
 
+  RunName = "doverp_"+std::to_string(doverp)+"_k3overk2_"+std::to_string(koverk2)+"_Nx_"+std::to_string(Nx)+"_Ny_"+std::to_string(Nx)+"_Nz_"+std::to_string(Nx);
 
   // knot stuff
   if(argc<2)
@@ -73,10 +70,7 @@ int main (int argc, char*argv[])
     return 1;
   }
 
-  knot_filename = argv[1];
   // end knot stuff
-
-  int step=0;
 
   InitialiseSystemParameters();
   LL=Nx*Ny*Nz;
@@ -84,15 +78,22 @@ int main (int argc, char*argv[])
   startconfig();
 
   cout << "starting simulation" << endl;
-
+#pragma omp parallel default(none) shared ()
   for (n=0; n<=Nmax; n++)
   {
-    if (step==stepskip)
+#pragma omp single
     {
-      writeVTKFiles();  // output VTK files for use with ParaView 
-      step=0;
+      if (n%stepskip==0)
+      {
+        writeVTKFiles();  // output VTK files for use with ParaView 
+      }
+
+      if (n%stepskipstatistics==0)
+      {
+        writeStatistics();  // output measurements
+      }
+
     }
-    step++;
     update();
   }
 } // end main
@@ -189,32 +190,49 @@ void startconfig(void)
 } // end startconfig
 
 /**********************************************************************/
+
 void update(void)
 {
   int j,k,l,m,jj;
   int xup,xdwn,yup,ydwn,zup,zdwn;
-  double Dxnx,Dynx,Dznx,Dxxnx,Dyynx,Dzznx;
-  double Dxny,Dyny,Dzny,Dxxny,Dyyny,Dzzny;
-  double Dxnz,Dynz,Dznz,Dxxnz,Dyynz,Dzznz;
+  int xyuu,xyud,xydu,xydd,xzuu,xzud,xzdu,xzdd,yzuu,yzud,yzdu,yzdd;
+  double Dxnx,Dynx,Dznx,Dxxnx,Dyynx,Dzznx,Dxynx,Dxznx,Dyznx;
+  double Dxny,Dyny,Dzny,Dxxny,Dyyny,Dzzny,Dxyny,Dxzny,Dyzny;
+  double Dxnz,Dynz,Dznz,Dxxnz,Dyynz,Dzznz,Dxynz,Dxznz,Dyznz;
   double hdotn,sqrtndotn;
+
+  int Lx=Nx;
+  int Ly=Ny;
+  int Lz=Nz;
 
   k=l=m=0;
 
-  /* Calculate derivatives, molecular field and do update */
-  for (j=0; j<LL; j++) {
+  /* Calculate derivatives, molecular field and the energy */
+#pragma omp for
+  for (j=0; j<LL; j++) 
+  {
+    // whats our 3D position?
+    k = i_vr(j);
+    l = j_vr(j);
+    m = k_vr(j);
+
     // define neighbouring nodes
-    xup=j+1; xdwn=j-1; yup=j+Nx; ydwn=j-Nx; zup=j+Nx*Ny; zdwn=j-Nx*Ny;
+    xup=j+1; xdwn=j-1; yup=j+Lx; ydwn=j-Lx; zup=j+Lx*Ly; zdwn=j-Lx*Ly;
+    xyuu=j+1+Lx; xyud=j+1-Lx; xydu=j-1+Lx; xydd=j-1-Lx;
+    xzuu=j+1+Lx*Ly; xzud=j+1-Lx*Ly; xzdu=j-1+Lx*Ly; xzdd=j-1-Lx*Ly;
+    yzuu=j+Lx+Lx*Ly; yzud=j+Lx-Lx*Ly; yzdu=j-Lx+Lx*Ly; yzdd=j-Lx-Lx*Ly;
+
     // correct for periodic boundaries
-    if (k==0) {xdwn+=Nx;}
-    if (k==Nx-1) {xup-=Nx;}
-    if (l==0) {ydwn+=Nx*Ny;}
-    if (l==Ny-1) {yup-=Nx*Ny;}
-    if (m==0) {zdwn+=LL;}
-    if (m==Nz-1) {zup-=LL;}
+    if (k==0) {xdwn+=Lx; xydu+=Lx; xydd+=Lx; xzdu+=Lx; xzdd+=Lx;}
+    if (k==Lx-1) {xup-=Lx; xyuu-=Lx; xyud-=Lx; xzuu-=Lx; xzud-=Lx;}
+    if (l==0) {ydwn+=Lx*Ly; xyud+=Lx*Ly; xydd+=Lx*Ly; yzdu+=Lx*Ly; yzdd+=Lx*Ly;}
+    if (l==Ly-1) {yup-=Lx*Ly; xyuu-=Lx*Ly; xydu-=Lx*Ly; yzuu-=Lx*Ly; yzud-=Lx*Ly;}
+    if (m==0) {zdwn+=LL; xzud+=LL; xzdd+=LL; yzud+=LL; yzdd+=LL;}
+    if (m==Lz-1) {zup-=LL; xzuu-=LL; xzdu-=LL; yzuu-=LL; yzdu-=LL;}
 
 #if BC // cheap fix for the Dirichlet boundary conditions
     if (m==0) {xup=j; xdwn=j; yup=j; ydwn=j; zup=j; zdwn=j;}
-    if (m==Nz-1) {xup=j; xdwn=j; yup=j; ydwn=j; zup=j; zdwn=j;}
+    if (m==Lz-1) {xup=j; xdwn=j; yup=j; ydwn=j; zup=j; zdwn=j;}
 #endif
 
     // calculate first order derivatives
@@ -243,11 +261,40 @@ void update(void)
     Dyynz = nz[yup]-2.0*nz[j]+nz[ydwn];
     Dzznz = nz[zup]-2.0*nz[j]+nz[zdwn];
 
+    // needed for unequal elastic constants
+    Dxynx = 0.25*(nx[xyuu]-nx[xyud]-nx[xydu]+nx[xydd]);
+    Dxznx = 0.25*(nx[xzuu]-nx[xzud]-nx[xzdu]+nx[xzdd]);
+    Dyznx = 0.25*(nx[yzuu]-nx[yzud]-nx[yzdu]+nx[yzdd]);
+
+    Dxyny = 0.25*(ny[xyuu]-ny[xyud]-ny[xydu]+ny[xydd]);
+    Dxzny = 0.25*(ny[xzuu]-ny[xzud]-ny[xzdu]+ny[xzdd]);
+    Dyzny = 0.25*(ny[yzuu]-ny[yzud]-ny[yzdu]+ny[yzdd]);
+
+    Dxynz = 0.25*(nz[xyuu]-nz[xyud]-nz[xydu]+nz[xydd]);
+    Dxznz = 0.25*(nz[xzuu]-nz[xzud]-nz[xzdu]+nz[xzdd]);
+    Dyznz = 0.25*(nz[yzuu]-nz[yzud]-nz[yzdu]+nz[yzdd]);
+
     // calculate molecular field
     hx[j] = K*(Dxxnx+Dyynx+Dzznx) - 2.0*K*q0*(Dynz-Dzny);
     hy[j] = K*(Dxxny+Dyyny+Dzzny) - 2.0*K*q0*(Dznx-Dxnz);
     hz[j] = K*(Dxxnz+Dyynz+Dzznz) - 2.0*K*q0*(Dxny-Dynx);
 
+    // unequal elastic constants
+    hx[j] += K1mK2*(Dxxnx+Dxyny+Dxznz);
+    hy[j] += K1mK2*(Dxynx+Dyyny+Dyznz);
+    hz[j] += K1mK2*(Dxznx+Dyzny+Dzznz);
+
+    hx[j] += K3mK2*(nx[j]*(nx[j]*Dxxnx+ny[j]*Dxynx+nz[j]*Dxznx)+ny[j]*(nx[j]*Dxynx+ny[j]*Dyynx+nz[j]*Dyznx)+nz[j]*(nx[j]*Dxznx+ny[j]*Dyznx+nz[j]*Dzznx)
+        +(Dxnx+Dyny+Dznz)*(nx[j]*Dxnx+ny[j]*Dynx+nz[j]*Dznx)
+        -(Dxny-Dynx)*(nx[j]*Dxny+ny[j]*Dyny+nz[j]*Dzny)-(Dxnz-Dznx)*(nx[j]*Dxnz+ny[j]*Dynz+nz[j]*Dznz));
+    hy[j] += K3mK2*(nx[j]*(nx[j]*Dxxny+ny[j]*Dxyny+nz[j]*Dxzny)+ny[j]*(nx[j]*Dxyny+ny[j]*Dyyny+nz[j]*Dyzny)+nz[j]*(nx[j]*Dxzny+ny[j]*Dyzny+nz[j]*Dzzny)
+        +(Dxnx+Dyny+Dznz)*(nx[j]*Dxny+ny[j]*Dyny+nz[j]*Dzny)
+        -(Dynx-Dxny)*(nx[j]*Dxnx+ny[j]*Dynx+nz[j]*Dznx)-(Dynz-Dzny)*(nx[j]*Dxnz+ny[j]*Dynz+nz[j]*Dznz));
+    hz[j] += K3mK2*(nx[j]*(nx[j]*Dxxnz+ny[j]*Dxynz+nz[j]*Dxznz)+ny[j]*(nx[j]*Dxynz+ny[j]*Dyynz+nz[j]*Dyznz)+nz[j]*(nx[j]*Dxznz+ny[j]*Dyznz+nz[j]*Dzznz)
+        +(Dxnx+Dyny+Dznz)*(nx[j]*Dxnz+ny[j]*Dynz+nz[j]*Dznz)
+        -(Dznx-Dxnz)*(nx[j]*Dxnx+ny[j]*Dynx+nz[j]*Dznx)-(Dzny-Dynz)*(nx[j]*Dxny+ny[j]*Dyny+nz[j]*Dzny));
+
+    // remove part parallel to director
     hdotn = nx[j]*hx[j] + ny[j]*hy[j] + nz[j]*hz[j];
     hx[j] -= nx[j]*hdotn;
     hy[j] -= ny[j]*hdotn;
@@ -255,18 +302,14 @@ void update(void)
 
 #if BC // Dirichlet boundary conditions along z
     if (m==0) {hx[j] = 0.0; hy[j] = 0.0; hz[j] = 0.0;}
-    if (m==Nz-1) {hx[j] = 0.0; hy[j] = 0.0; hz[j] = 0.0;}
+    if (m==Lz-1) {hx[j] = 0.0; hy[j] = 0.0; hz[j] = 0.0;}
 #endif
-
-    // keep track of boundaries -- fix me!!
-    k++;
-    if (k==Nx) {l++; k=0;}
-    if (l==Ny) {m++; l=0;}
   }
 
   // do the update -- first order Euler
-  for (j=0; j<LL; j++) {
-    // director
+#pragma omp for
+  for (j=0; j<LL; j++)
+  {
     nx[j] += Gamma*hx[j]*dt;
     ny[j] += Gamma*hy[j]*dt;
     nz[j] += Gamma*hz[j]*dt;
@@ -277,116 +320,109 @@ void update(void)
     nz[j] /= sqrtndotn;
   }
 
-} // end update
+}//end update
 
-/**********************************************************************/
-void writeVTKFiles(void)
+void writeStatistics()
 {
-  int j;
 
-  string fn = output_dir + "/vtk_director.vtk";
-  ofstream Aout (fn.c_str());
-  Aout << "# vtk DataFile Version 3.0\nKnot\nASCII\nDATASET STRUCTURED_POINTS\n";
-  Aout << "DIMENSIONS " << Nx << ' ' << Ny << ' ' << Nz << '\n';
-  Aout << "ORIGIN " << x(0) << ' ' << y(0) << ' ' << z(0) << '\n';
-  Aout << "SPACING " << h << ' ' << h << ' ' << h << '\n';
-  Aout << "POINT_DATA " << Nx*Ny*Nz << '\n';
-  Aout << "VECTORS n double\n";
-
-  for (j=0; j<LL; j++) {
-    Aout << nx[j] << " " << ny[j] << " " << nz[j] << endl;
+  double twistdensityxzplane=0; 
+  double twistsqdensityxzplane=0; 
+  double splaysqbendsqdensityxzplane=0 ;
+  for(int l=0;l<LL;l++)
+  {
+    if((j_vr(l)==(Ny-1)/2))
+    {
+      double splaysq,twist,bendsq,twistsq;
+      SplayTwistBendDensities(l, splaysq, twist,bendsq,twistsq);
+      twistdensityxzplane += twist;
+      twistsqdensityxzplane += twistsq;
+      splaysqbendsqdensityxzplane += splaysq+bendsq;
+    }   
   }
+  double cholestericfreeenergyxzplane =2*K*q0*twistdensityxzplane; 
+  double nematicfreeenergyxzplane = (K1overK2)*K*splaysqbendsqdensityxzplane+K*twistsqdensityxzplane;
 
-  Aout.close();
-} // end writeVTKFiles
+  char buf[128];
+  FILE *fileStats;
+  sprintf(buf,"%s/%s_summary_statistics.dat",output_dir.c_str(),RunName.c_str());
+  fileStats=fopen(buf,"w");
+  setbuf(fileStats, NULL);
 
+  fprintf(fileStats, "timestep  XZNematicFreeEnergy XZTwistFreeEnergy XZTwist XZSplayBend XZTwistsq  \n"); 
+  fprintf(fileStats, "%s %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistdensityxzplane,splaysqbendsqdensityxzplane,twistsqdensityxzplane); 
+}  
 
-/**************************************************************************/
-/*  The following routines are based on those given in Numerical Recipes  */
-/*   and are here copied from Alex and Davide's lattice Boltzmann code    */
-/**************************************************************************/
-
-#define ROTATE(a,i,j,k,l) g=a[i][j];h=a[k][l];a[i][j]=g-s*(h+g*tau);\
-                            a[k][l]=h+s*(g-h*tau);
-#define n 3
-void jacobi(double (*a)[n], double d[], double (*v)[n], int *nrot)
+void SplayTwistBendDensities(int j, double& splaysq, double &twist, double &bend, double &twistsq)
 {
-  int j,iq,ip,i;
-  double tresh,theta,tau,t,sm,s,h,g,c;
-  double b[n],z[n];
+  int k,l,m;
+  int xup,xdwn,yup,ydwn,zup,zdwn;
+  double Dxnx,Dynx,Dznx,Dxxnx,Dyynx,Dzznx,Dxynx,Dxznx,Dyznx;
+  double Dxny,Dyny,Dzny,Dxxny,Dyyny,Dzzny,Dxyny,Dxzny,Dyzny;
+  double Dxnz,Dynz,Dznz,Dxxnz,Dyynz,Dzznz,Dxynz,Dxznz,Dyznz;
 
-  for (ip=0;ip<n;ip++) {
-    for (iq=0;iq<n;iq++) v[ip][iq]=0.0;
-    v[ip][ip]=1.0;
-  }
-  for (ip=0;ip<n;ip++) {
-    b[ip]=d[ip]=a[ip][ip];
-    z[ip]=0.0;
-  }
-  *nrot=0;
-  for (i=1;i<=50;i++) {
-    sm=0.0;
-    for (ip=0;ip< n-1;ip++) {
-      for (iq=ip+1;iq<n;iq++)
-        sm += fabs(a[ip][iq]);
-    }
-    if (sm == 0.0) {
-      return;
-    }
-    if (i < 4)
-      tresh=0.2*sm/(n*n);
-    else
-      tresh=0.0;
-    for (ip=0;ip<n-1;ip++) {
-      for (iq=ip+1;iq<n;iq++) {
-        g=100.0*fabs(a[ip][iq]);
-        if (i > 4 && (fabs(d[ip])+g) == fabs(d[ip])
-            && (fabs(d[iq])+g) == fabs(d[iq]))
-          a[ip][iq]=0.0;
-        else if (fabs(a[ip][iq]) > tresh) {
-          h=d[iq]-d[ip];
-          if ((fabs(h)+g) == fabs(h))
-            t=(a[ip][iq])/h;
-          else {
-            theta=0.5*h/(a[ip][iq]);
-            t=1.0/(fabs(theta)+sqrt(1.0+theta*theta));
-            if (theta < 0.0) t = -t;
-          }
-          c=1.0/sqrt(1+t*t);
-          s=t*c;
-          tau=s/(1.0+c);
-          h=t*a[ip][iq];
-          z[ip] -= h;
-          z[iq] += h;
-          d[ip] -= h;
-          d[iq] += h;
-          a[ip][iq]=0.0;
-          for (j=0;j<=ip-1;j++) {
-            ROTATE(a,j,ip,j,iq)
-          }
-          for (j=ip+1;j<=iq-1;j++) {
-            ROTATE(a,ip,j,j,iq)
-          }
-          for (j=iq+1;j<n;j++) {
-            ROTATE(a,ip,j,iq,j)
-          }
-          for (j=0;j<n;j++) {
-            ROTATE(v,j,ip,j,iq)
-          }
-          ++(*nrot);
-        }
-      }
-    }
-    for (ip=0;ip<n;ip++) {
-      b[ip] += z[ip];
-      d[ip]=b[ip];
-      z[ip]=0.0;
-    }
-  }
-  cout << "Too many iterations in routine jacobi" << endl;
-  exit(0);
+  int Lx=Nx;
+  int Ly=Ny;
+  int Lz=Nz;
+
+  k=l=m=0;
+  // whats our 3D position?
+  k = i_vr(j);
+  l = j_vr(j);
+  m = k_vr(j);
+
+  // define neighbouring nodes
+  xup=j+1; xdwn=j-1; yup=j+Lx; ydwn=j-Lx; zup=j+Lx*Ly; zdwn=j-Lx*Ly;
+
+  // correct for periodic boundaries
+  if (k==0) {xdwn+=Lx; }
+  if (k==Lx-1) {xup-=Lx; }
+  if (l==0) {ydwn+=Lx*Ly; }
+  if (l==Ly-1) {yup-=Lx*Ly;}
+  if (m==0) {zdwn+=LL; }
+  if (m==Lz-1) {zup-=LL;}
+
+#if BC // cheap fix for the Dirichlet boundary conditions
+  if (m==0) {xup=j; xdwn=j; yup=j; ydwn=j; zup=j; zdwn=j;}
+  if (m==Lz-1) {xup=j; xdwn=j; yup=j; ydwn=j; zup=j; zdwn=j;}
+#endif
+
+  // calculate first order derivatives
+  Dxnx = (nx[xup]-nx[xdwn])/2.0;
+  Dynx = (nx[yup]-nx[ydwn])/2.0;
+  Dznx = (nx[zup]-nx[zdwn])/2.0;
+
+  Dxny = (ny[xup]-ny[xdwn])/2.0;
+  Dyny = (ny[yup]-ny[ydwn])/2.0;
+  Dzny = (ny[zup]-ny[zdwn])/2.0;
+
+  Dxnz = (nz[xup]-nz[xdwn])/2.0;
+  Dynz = (nz[yup]-nz[ydwn])/2.0;
+  Dznz = (nz[zup]-nz[zdwn])/2.0;
+
+  double bx =nx[j]*Dxnx + ny[j]*Dynx + nz[j]*Dznx; 
+  double by =nx[j]*Dxny + ny[j]*Dyny + nz[j]*Dzny; 
+  double bz =nx[j]*Dxnz + ny[j]*Dynz + nz[j]*Dznz; 
+  bend =bx*bx+by*by+bz*bz;
+
+  double splay = (Dxnx + Dyny +Dznz);
+  splaysq =splay*splay;
+  twist = nx[j]*(Dynz-Dzny)+ny[j]*(Dznx-Dxnz)+nz[j]*(Dxny-Dynx);
+  twistsq = twist*twist;
+  return;
 }
-#undef n
-#undef ROTATE
 
 
+//Line number in the x direction. Range is from 0 to I-1.
+int i_vr(int l){
+  return l%Nx; 
+}
+
+//Line number in the y direction
+int j_vr(int l){
+  return (l%(Nx*Ny))/Nx; 
+}
+
+//Line number in the z direction
+int k_vr(int l){
+  return l/(Nx*Ny); 
+}
