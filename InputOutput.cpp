@@ -12,118 +12,156 @@ int InitialiseSystemParameters()
     {
 
         string buff,buff2;
+        stringstream ss;
 
-        stringstream ss2;
         if(getline(CurveInputStream,buff))
         {
-            ss2 << buff;
-            getline(ss2,buff2,'=');
-            ss2 >> NumComponents;
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> NumComponents;
+        }
+        degrees.resize(NumComponents);
+        ss.str("");
+        ss.clear();
+
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> NumRefinements;
+        }
+        ss.str("");
+        ss.clear();
+
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> h;
+        }
+        ss.str("");
+        ss.clear();
+
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Nx;
+        }
+        ss.str("");
+        ss.clear();
+
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Ny;
+        }
+        ss.str("");
+        ss.clear();
+
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Nz;
+        }
+        ss.str("");
+        ss.clear();
+
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Scaling;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> ScaleProportionally;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> BoxFractionx;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> BoxFractiony;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> BoxFractionz;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Initialninftyx;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Initialninftyy;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Initialninftyz;
+        }
+        ss.str("");
+        ss.clear();
+        if(getline(CurveInputStream,buff))
+        {
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> Threshold_ninf_dot_n;
+        }
+        ss.str("");
+        ss.clear();
+
+        for(int i =0;i<NumComponents;i++)
+        {
+            if(getline(CurveInputStream,buff))
+            {
+                ss << buff;
+                getline(ss,buff2,'=');
+                ss >> degrees[i];
+            }
+        ss.str("");
+        ss.clear();
         }
 
-        stringstream ssa;
         if(getline(CurveInputStream,buff))
         {
-            ssa << buff;
-            getline(ssa,buff2,'=');
-            ssa >> NumRefinements;
+            ss << buff;
+            getline(ss,buff2,'=');
+            ss >> TubeRadius;
         }
-
-        stringstream ss3;
-        if(getline(CurveInputStream,buff))
-        {
-            ss3 << buff;
-            getline(ss3,buff2,'=');
-            ss3 >> h;
-        }
-
-        stringstream ss4;
-        if(getline(CurveInputStream,buff))
-        {
-            ss4 << buff;
-            getline(ss4,buff2,'=');
-            ss4 >> Nx;
-        }
-
-        stringstream ss5;
-        if(getline(CurveInputStream,buff))
-        {
-            ss5 << buff;
-            getline(ss5,buff2,'=');
-            ss5 >> Ny;
-        }
-
-        stringstream ss6;
-        if(getline(CurveInputStream,buff))
-        {
-            ss6 << buff;
-            getline(ss6,buff2,'=');
-            ss6 >> Nz;
-        }
-
-        stringstream ss7;
-        if(getline(CurveInputStream,buff))
-        {
-            ss7 << buff;
-            getline(ss7,buff2,'=');
-            ss7 >> Scaling;
-        }
-        stringstream ss8;
-        if(getline(CurveInputStream,buff))
-        {
-            ss8 << buff;
-            getline(ss8,buff2,'=');
-            ss8 >> ScaleProportionally;
-        }
-        stringstream ss9;
-        if(getline(CurveInputStream,buff))
-        {
-            ss9 << buff;
-            getline(ss9,buff2,'=');
-            ss9 >> BoxFractionx;
-        }
-        stringstream ss10;
-        if(getline(CurveInputStream,buff))
-        {
-            ss10 << buff;
-            getline(ss10,buff2,'=');
-            ss10 >> BoxFractiony;
-        }
-        stringstream ss11;
-        if(getline(CurveInputStream,buff))
-        {
-            ss11 << buff;
-            getline(ss11,buff2,'=');
-            ss11 >> BoxFractionz;
-        }
-        stringstream ss12;
-        if(getline(CurveInputStream,buff))
-        {
-            ss12 << buff;
-            getline(ss12,buff2,'=');
-            ss12 >> Initialninftyx;
-        }
-        stringstream ss13;
-        if(getline(CurveInputStream,buff))
-        {
-            ss13 << buff;
-            getline(ss13,buff2,'=');
-            ss13 >> Initialninftyy;
-        }
-        stringstream ss14;
-        if(getline(CurveInputStream,buff))
-        {
-            ss14 << buff;
-            getline(ss14,buff2,'=');
-            ss14 >> Initialninftyz;
-        }
-        stringstream ss15;
-        if(getline(CurveInputStream,buff))
-        {
-            ss15 << buff;
-            getline(ss15,buff2,'=');
-            ss15 >> Threshold_ninf_dot_n;
-        }
+        ss.str("");
+        ss.clear();
     }
     else
     {

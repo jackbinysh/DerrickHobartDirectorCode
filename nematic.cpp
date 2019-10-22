@@ -42,18 +42,25 @@ void jacobi(double (*a)[n], double d[], double (*v)[n], int *nrot);
 
 /* global variables */
 int n,LL;
-double K,q0,Gamma,dt;
+double koverk2,q0,Gamma,dt;
 double *nx,*ny,*nz;
 double *hx,*hy,*hz;
 
 #define BC 1 // Dirichlet boundary conditions on (1) or off (0)
-#define CHIRAL 1 // chirality on (1) or off (0)
 
 //int main(int argc, char** argv) 
 int main (int argc, char*argv[])
 {
-  K = 0.01;       // elastic constant
-  q0 = 1.0*M_PI/Lz;    // chirality
+  float doverp=(float) atof(args[1]);
+  koverk2 = atof(args[2]); 
+  Nx=(int) atoi(args[3]);
+  Ny=(int) atoi(args[4]);
+  Nz=(int) atoi(args[5]);
+  output_directory = str(args[6]);
+  knot_filename= str(args[7]);
+  
+  q0=(2.f*M_PI/(float)(Nz))*doverp;
+  
   Gamma = 0.65;     // relaxation constant
   dt = 1.0;        // integration timestep
 
@@ -78,14 +85,11 @@ int main (int argc, char*argv[])
 
   cout << "starting simulation" << endl;
 
-  for (n=0; n<=Nmax; n++) {
-    if ((n>1)&&(n%1000==0)) {
-      cout << "timestep " << n << endl;
-    }
-    if (step==stepskip) {
-      cout << "writing files at timestep " << n << endl;
+  for (n=0; n<=Nmax; n++)
+  {
+    if (step==stepskip)
+    {
       writeVTKFiles();  // output VTK files for use with ParaView 
-      writeCholestericPitch();
       step=0;
     }
     step++;
@@ -122,30 +126,27 @@ void startconfig(void)
     OutputScaledKnot(Curve); 
   }
 
-
   k=l=m=0;  
   omega=0.0; // overly cautious!!
 
-  double alpha,rho,R;
   int c; // need to adapt to number of components
   c=0; // no real reason for this    
   R = TubeRadius; // radius for the tubular neighbourhood of the curve 
   alpha=0.0; // overly cautious!!
+  viewpoint Point;
 
   double LL=Nx*Ny*Nz;
   for (j=0; j<LL; j++) 
   {    
-    // the far field director is aligned along x everywhere -- planar anchoring
-    nx = 0.0;
-    ny = 0.0;
-    nz = 1.0;
+    double tempnx = 0.0;
+    double tempny = 0.0;
+    double tempnz = 1.0;
 
     Point.xcoord = x(k); //1.0*k-Nx/2.0+0.5;
     Point.ycoord = y(l); //1.0*l-Ny/2.0+0.5;
     Point.zcoord = z(m); //1.0*m-Nz/2.0+0.5;
 
     // calculate the distance to the curve 
-    //      rho = ComputeDistanceOnePointTest(Curve,Point,alpha,c); // does not work :(
     rho = ComputeDistanceOnePoint(Curve,Point);
     // put a Skyrmion texture inside the tubular neighbourhood
     if (rho < R)
@@ -158,32 +159,28 @@ void startconfig(void)
       // set the director  
       // Chirality +1 is right handed.
       // Chirality -1 is left handed
-      nx = sin(M_PI*rho/R)*cos(0.5*omega-degrees[c]*alpha);
-      ny = sin(M_PI*rho/R)*sin(0.5*omega-degrees[c]*alpha);
-      nz = -cos(M_PI*rho/R);
+      tempnx = sin(M_PI*rho/R)*cos(0.5*omega-degrees[c]*alpha);
+      tempny = sin(M_PI*rho/R)*sin(0.5*omega-degrees[c]*alpha);
+      tempnz = -cos(M_PI*rho/R);
     }
 
 #if BC // Dirichlet boundary conditions 
     if (m==0) 
     {
-      nx = 0.0;
-      ny = 0.0;
-      nz = 1.0;
+      tempnx = 0.0;
+      tempny = 0.0;
+      tempnz = 1.0;
     }
     if (m==Nz-1)
     { 
-      nx = 0.0;
-      ny = 0.0;
-      nz = 1.0;
+      tempnx = 0.0;
+      tempny = 0.0;
+      tempnz = 1.0;
     }
 #endif
-    // initialise the Q-tensor
-    Qxx[j] = amplitude*(nx*nx-0.3333333);
-    Qxy[j] = amplitude*(nx*ny);
-    Qxz[j] = amplitude*(nx*nz);
-    Qyy[j] = amplitude*(ny*ny-0.3333333);
-    Qyz[j] = amplitude*(ny*nz);
-
+    nx[j]=tempnx;
+    ny[j]=tempny;
+    nz[j]=tempnz;
     k++;
     if (k==Nx) {l++; k=0;}
     if (l==Ny) {m++; l=0;}
@@ -287,7 +284,7 @@ void writeVTKFiles(void)
 {
   int j;
 
-  string fn = "Knots/" + knot_filename + "/vtk_director.vtk";
+  string fn = output_dir + "/vtk_director.vtk";
   ofstream Aout (fn.c_str());
   Aout << "# vtk DataFile Version 3.0\nKnot\nASCII\nDATASET STRUCTURED_POINTS\n";
   Aout << "DIMENSIONS " << Nx << ' ' << Ny << ' ' << Nz << '\n';

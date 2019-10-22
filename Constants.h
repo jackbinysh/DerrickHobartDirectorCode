@@ -4,15 +4,18 @@
     Gareth Alexander <g.p.alexadner@warwick.ack.uk>
     This software is provided under a BSD license. See LICENSE.txt.
 
-    This file contains the global variables the user sets in the file "input.txt"
+    This file contains the global variables the user sets in the file "input.txt" or from command line
 */
 
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 #include <string>
+#include <vector>
 
 // the input filename, in the form "xxxxx.txt"
 extern std::string knot_filename;
+// the output filepath
+extern std::string output_directory;
 // the number of knot components
 extern int NumComponents;
 // how many times should the curve be subdivided. If you dont want any, set this to 0
@@ -29,5 +32,8 @@ extern double BoxFractionx, BoxFractiony, BoxFractionz;
 // A user defined threshold between -1 and 0 (typically around -0.95). If one of the n . n_infty values across the knot is more negative than it, we will try another n_infty for calculation of the solid angle at some point
 extern double Initialninftyx,Initialninftyy,Initialninftyz;
 // The users initial choice of the vector n_infty. Normalise it!
+extern std::vector<int> degrees;
 extern double Threshold_ninf_dot_n;
+// How thick the Hopfion Tube is
+extern double TubeRadius;
 #endif
