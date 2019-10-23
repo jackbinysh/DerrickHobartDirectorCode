@@ -29,12 +29,6 @@ using namespace std;
 void initialise(void);
 void startconfig(void);
 void update(void);
-// modified numerical recipes routine
-#define n 3     
-void jacobi(double (*a)[n], double d[], double (*v)[n], int *nrot);
-#undef n
-
-#define BC 1 // Dirichlet boundary conditions on (1) or off (0)
 
 int n,LL;
 double *nx,*ny,*nz;
@@ -123,77 +117,96 @@ void initialise(void)
 /**********************************************************************/
 void startconfig(void)
 {
-  int j,k,l,m;
-  double omega,alpha,R,rho;
-  // set initialisation type
-
-  // initialise the knot
-  Link Curve;
-  if(0==InitialiseFromFile(Curve))
+  switch(InitialisationMethod)
   {
-    cout << "Filling in the Geometry of the Input Curve \n";
-    ComputeGeometry(Curve);
-    OutputScaledKnot(Curve); 
-  }
-
-  k=l=m=0;  
-  omega=0.0; // overly cautious!!
-
-  int c; // need to adapt to number of components
-  c=0; // no real reason for this    
-  R = TubeRadius; // radius for the tubular neighbourhood of the curve 
-  alpha=0.0; // overly cautious!!
-  viewpoint Point;
-
-  double LL=Nx*Ny*Nz;
-  for (j=0; j<LL; j++) 
-  {    
-    double tempnx = 0.0;
-    double tempny = 0.0;
-    double tempnz = 1.0;
-
-    Point.xcoord = x(k); //1.0*k-Nx/2.0+0.5;
-    Point.ycoord = y(l); //1.0*l-Ny/2.0+0.5;
-    Point.zcoord = z(m); //1.0*m-Nz/2.0+0.5;
-
-    // calculate the distance to the curve 
-    rho = ComputeDistanceOnePoint(Curve,Point);
-    // put a Skyrmion texture inside the tubular neighbourhood
-    if (rho < R)
+    case FROM_SOLIDANGLE:
     {
-      // here is the solid angle
-      omega = ComputeSolidAngleOnePoint(Curve,Point);
-      // inelegant method for getting longitudinal phase and component
-      alpha = ComputeLongitudinalPhase(Curve,Point);
-      c = WhichComponent(Curve,Point);  
-      // set the director  
-      // Chirality +1 is right handed.
-      // Chirality -1 is left handed
-      tempnx = sin(M_PI*rho/R)*cos(0.5*omega-degrees[c]*alpha);
-      tempny = sin(M_PI*rho/R)*sin(0.5*omega-degrees[c]*alpha);
-      tempnz = -cos(M_PI*rho/R);
-    }
+      int j,k,l,m;
+      double omega,alpha,R,rho;
+      // set initialisation type
+
+      // initialise the knot
+      Link Curve;
+      if(0==InitialiseFromFile(Curve))
+      {
+        cout << "Filling in the Geometry of the Input Curve \n";
+        ComputeGeometry(Curve);
+        OutputScaledKnot(Curve); 
+      }
+
+      k=l=m=0;  
+      omega=0.0; // overly cautious!!
+
+      int c; // need to adapt to number of components
+      c=0; // no real reason for this    
+      R = TubeRadius; // radius for the tubular neighbourhood of the curve 
+      alpha=0.0; // overly cautious!!
+      viewpoint Point;
+
+      double LL=Nx*Ny*Nz;
+      for (j=0; j<LL; j++) 
+      {    
+        double tempnx = 0.0;
+        double tempny = 0.0;
+        double tempnz = 1.0;
+
+        Point.xcoord = x(k); //1.0*k-Nx/2.0+0.5;
+        Point.ycoord = y(l); //1.0*l-Ny/2.0+0.5;
+        Point.zcoord = z(m); //1.0*m-Nz/2.0+0.5;
+
+        // calculate the distance to the curve 
+        rho = ComputeDistanceOnePoint(Curve,Point);
+        // put a Skyrmion texture inside the tubular neighbourhood
+        if (rho < R)
+        {
+          // here is the solid angle
+          omega = ComputeSolidAngleOnePoint(Curve,Point);
+          // inelegant method for getting longitudinal phase and component
+          alpha = ComputeLongitudinalPhase(Curve,Point);
+          c = WhichComponent(Curve,Point);  
+          // set the director  
+          // Chirality +1 is right handed.
+          // Chirality -1 is left handed
+          tempnx = sin(M_PI*rho/R)*cos(0.5*omega-degrees[c]*alpha);
+          tempny = sin(M_PI*rho/R)*sin(0.5*omega-degrees[c]*alpha);
+          tempnz = -cos(M_PI*rho/R);
+        }
 
 #if BC // Dirichlet boundary conditions 
-    if (m==0) 
-    {
-      tempnx = 0.0;
-      tempny = 0.0;
-      tempnz = 1.0;
-    }
-    if (m==Nz-1)
-    { 
-      tempnx = 0.0;
-      tempny = 0.0;
-      tempnz = 1.0;
-    }
+        if (m==0) 
+        {
+          tempnx = 0.0;
+          tempny = 0.0;
+          tempnz = 1.0;
+        }
+        if (m==Nz-1)
+        { 
+          tempnx = 0.0;
+          tempny = 0.0;
+          tempnz = 1.0;
+        }
 #endif
-    nx[j]=tempnx;
-    ny[j]=tempny;
-    nz[j]=tempnz;
-    k++;
-    if (k==Nx) {l++; k=0;}
-    if (l==Ny) {m++; l=0;}
+        nx[j]=tempnx;
+        ny[j]=tempny;
+        nz[j]=tempnz;
+        k++;
+        if (k==Nx) {l++; k=0;}
+        if (l==Ny) {m++; l=0;}
+      }
+    }
+    case FROM_FUNCTION:
+    {
+      // the heliconical texture
+      double theta=(M_PI/2) - 0.5;
+      for (int j=0; j<LL; j++) 
+      {
+        // whats our 3D position?
+        int m = k_vr(j);
+        nx[j]=sin(theta)*cos(q0*m);
+        ny[j]=sin(theta)*sin(q0*m);
+        nz[j]=cos(theta);
+      }
+    }
   }
 
 } // end startconfig
@@ -357,11 +370,11 @@ void writeStatistics(FILE* filestats)
     }   
   }
 
-  double cholestericfreeenergy =2*K*q0*totaltwist; 
-  double nematicfreeenergy = (K1mK2+K)*totalsplaysqbendsq+K*totaltwistsq;
+  double cholestericfreeenergy =K*q0*totaltwist; 
+  double nematicfreeenergy = 0.5*(K1mK2+K)*totalsplaysqbendsq+0.5*K*totaltwistsq;
 
-  double cholestericfreeenergyxzplane =2*K*q0*twistxzplane; 
-  double nematicfreeenergyxzplane = (K1mK2+K)*splaysqbendsqxzplane+K*twistsqxzplane;
+  double cholestericfreeenergyxzplane =K*q0*twistxzplane; 
+  double nematicfreeenergyxzplane = 0.5*(K1mK2+K)*splaysqbendsqxzplane+0.5*K*twistsqxzplane;
 
   fprintf(filestats, "%s %e %e %e %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergy,cholestericfreeenergy,nematicfreeenergy+cholestericfreeenergy,nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistxzplane,splaysqbendsqxzplane,twistsqxzplane); 
 }  

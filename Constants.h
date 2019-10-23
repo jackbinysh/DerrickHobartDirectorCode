@@ -12,6 +12,13 @@
 #include <string>
 #include <vector>
 
+
+#define BC 0 // Dirichlet boundary conditions on (1) or off (0)
+
+// do we want to read in a file? If so, whats its name?
+enum InitialisationType {FROM_FUNCTION,FROM_FILE, FROM_SOLIDANGLE};
+const InitialisationType InitialisationMethod = FROM_FUNCTION;
+
 // simulation constants
 const int Nmax = 10000;       // Number of timesteps
 const int stepskip = 1000;    // print director file every stepskip timesteps
