@@ -37,8 +37,7 @@ std::string RunName;
 //int main(int argc, char** argv) 
 int main (int argc, char*argv[])
 {
-  int line = atoi(argv[1]);
-  InitialiseSystemParameters(line);
+  InitialiseSystemParameters(argv);
 
   nx=new double[LL];
   ny=new double[LL];

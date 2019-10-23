@@ -4,42 +4,24 @@
 #include "SolidAngle.h"
 
 //Judge not...
-int InitialiseSystemParameters(int line)
+int InitialiseSystemParameters(char*argv[])
 {
     /* READ IN ALL GLOBAL DATA */
-    ifstream GlobalVariablesInputStream;
-    GlobalVariablesInputStream.open("Input.txt");
-    std::vector<std::string> result;
-    int counter=0;
-    while(GlobalVariablesInputStream.is_open())
-    {
-        string buff,buff2;
-        stringstream ss;
-        if(getline(GlobalVariablesInputStream,buff) && counter==line)
-        {
-            std::stringstream ss(buff);
-            std::string token;
-            while (std::getline(ss, token,' ')){ result.push_back(token); }
-            break;
-        }
-        counter++;
-    }
-    double doverp=atof(result[0].c_str());
-    double K1overK2 = atof(result[1].c_str()); 
-    Nx=(int) atoi(result[2].c_str());
-    Ny=(int) atoi(result[3].c_str());
-    Nz=(int) atoi(result[4].c_str());
-    LL=Nx*Ny*Nz;
-    output_dir = result[5];
-    knot_filename=result[6] ;
+    double doverp=(double) atof(argv[1]);
+    double K1overK2 = atof(argv[2]);
+    Nx=(int) atoi(argv[3]);
+    Ny=(int) atoi(argv[4]);
+    Nz=(int) atoi(argv[5]);
+    output_dir = string(argv[6]);
+    knot_filename= string(argv[7]);
     // set the elastic constants
-    K1mK2 = (K1overK2)*K - K;  
+    K1mK2 = (K1overK2)*K - K;
     // K1 and K3 are the same
     K3mK2 =K1mK2;
     // set the chirality
     q0=(2.f*M_PI/(float)(Nz))*doverp;
     RunName = "doverp_"+std::to_string(doverp)+"_k3overk2_"+std::to_string(K1overK2)+"_Nx_"+std::to_string(Nx)+"_Ny_"+std::to_string(Nx)+"_Nz_"+std::to_string(Nz);
-    
+
 
     /* READ IN SOLID ANGLE SETTINGS */
 
