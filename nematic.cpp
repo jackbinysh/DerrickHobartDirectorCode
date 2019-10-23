@@ -24,9 +24,6 @@
 #endif
 
 using namespace std;
-
-/* functions */
-void initialise(void);
 void startconfig(void);
 void update(void);
 
@@ -40,35 +37,16 @@ std::string RunName;
 //int main(int argc, char** argv) 
 int main (int argc, char*argv[])
 {
-  double doverp=(double) atof(argv[1]);
-  double K1overK2 = atof(argv[2]); 
-  Nx=(int) atoi(argv[3]);
-  Ny=(int) atoi(argv[4]);
-  Nz=(int) atoi(argv[5]);
-  output_dir = string(argv[6]);
-  knot_filename= string(argv[7]);
-  // set the elastic constants
-  K1mK2 = (K1overK2)*K - K;  
-  // K1 and K3 are the same
-  K3mK2 =K1mK2;
-  // set the chirality
-  q0=(2.f*M_PI/(float)(Nz))*doverp;
+  int line = atoi(argv[1]);
+  InitialiseSystemParameters(line);
 
-  RunName = "doverp_"+std::to_string(doverp)+"_k3overk2_"+std::to_string(K1overK2)+"_Nx_"+std::to_string(Nx)+"_Ny_"+std::to_string(Nx)+"_Nz_"+std::to_string(Nz);
+  nx=new double[LL];
+  ny=new double[LL];
+  nz=new double[LL];
+  hx=new double[LL];
+  hy=new double[LL];
+  hz=new double[LL];
 
-  // knot stuff
-  if(argc<2)
-  {
-    std::cerr << "Please specify a folder name - see README" << endl;
-    std::cerr << "e.g. SolidAngle Unknot if your executable is called SolidAngle and there's a folder within the knots folder called Unknot" << endl;
-    return 1;
-  }
-
-  // end knot stuff
-
-  InitialiseSystemParameters();
-  LL=Nx*Ny*Nz;
-  initialise();
   startconfig();
 
   // the summary stats file
@@ -100,19 +78,6 @@ int main (int argc, char*argv[])
     update();
   }
 } // end main
-
-
-/**********************************************************************/
-void initialise(void)
-{
-  nx=new double[LL];
-  ny=new double[LL];
-  nz=new double[LL];
-
-  hx=new double[LL];
-  hy=new double[LL];
-  hz=new double[LL];
-}
 
 /**********************************************************************/
 void startconfig(void)
