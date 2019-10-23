@@ -1,0 +1,13 @@
+NumComponents=1
+NumRefinements=0
+Scaling=1
+ScaleProportionally=1
+BoxFractionx= 0.415
+BoxFractiony= 0.415
+BoxFractionz= 0.415
+Initialninftyx = 0
+Initialninftyy = 0
+Initialninftyz = 1
+Threshold_ninf_dot_n=-0.9
+degree0=1
+tuberadius=25
