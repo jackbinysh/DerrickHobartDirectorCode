@@ -83,11 +83,12 @@ int main (int argc, char*argv[])
   sprintf(buf,"%s/%s_summary_statistics.dat",output_dir.c_str(),RunName.c_str());
   fileStats=fopen(buf,"a");
   setbuf(fileStats, NULL);
-  fprintf(fileStats, "timestep  XZNematicFreeEnergy XZTwistFreeEnergy XZTwist XZSplayBend XZTwistsq  \n"); 
+  // heres what is printed : fprintf(filestats, "%s %e %e %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergy,cholestericfreeenergy,nematicfreeenergy+cholestericfreeenergy,nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistxzplane,splaysqbendsqxzplane,twistsqxzplane); 
+  fprintf(fileStats, "timestep  NematicFreeEnergy CholestericFreeEnergy TotalFreeEnergy XZNematicFreeEnergy XZTwistFreeEnergy XZTwist XZSplayBend XZTwistsq\n"); 
 
   cout << "starting simulation" << endl;
-#pragma omp parallel default(none) shared ()
-  for (n=0; n<=Nmax; n++)
+#pragma omp parallel default(none) shared (n,fileStats)
+  while(n<=Nmax)
   {
 #pragma omp single
     {
@@ -100,7 +101,7 @@ int main (int argc, char*argv[])
       {
         writeStatistics(fileStats);  // output measurements
       }
-
+      n++;
     }
     update();
   }
@@ -332,25 +333,37 @@ void update(void)
 
 void writeStatistics(FILE* filestats)
 {
+  double totaltwist=0; 
+  double totaltwistsq=0; 
+  double totalsplaysqbendsq=0 ;
 
-  double twistdensityxzplane=0; 
-  double twistsqdensityxzplane=0; 
-  double splaysqbendsqdensityxzplane=0 ;
+  double twistxzplane=0; 
+  double twistsqxzplane=0; 
+  double splaysqbendsqxzplane=0 ;
+
   for(int l=0;l<LL;l++)
   {
+    double splaysq,twist,bendsq,twistsq;
+    SplayTwistBendDensities(l, splaysq, twist,bendsq,twistsq);
+    totaltwist+=twist; 
+    totaltwistsq+=twistsq; 
+    totalsplaysqbendsq+=bendsq+splaysq ;
+
     if((j_vr(l)==(Ny-1)/2))
     {
-      double splaysq,twist,bendsq,twistsq;
-      SplayTwistBendDensities(l, splaysq, twist,bendsq,twistsq);
-      twistdensityxzplane += twist;
-      twistsqdensityxzplane += twistsq;
-      splaysqbendsqdensityxzplane += splaysq+bendsq;
+      twistxzplane += twist;
+      twistsqxzplane += twistsq;
+      splaysqbendsqxzplane += splaysq+bendsq;
     }   
   }
-  double cholestericfreeenergyxzplane =2*K*q0*twistdensityxzplane; 
-  double nematicfreeenergyxzplane = (K1mK2+K)*splaysqbendsqdensityxzplane+K*twistsqdensityxzplane;
 
-  fprintf(filestats, "%s %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistdensityxzplane,splaysqbendsqdensityxzplane,twistsqdensityxzplane); 
+  double cholestericfreeenergy =2*K*q0*totaltwist; 
+  double nematicfreeenergy = (K1mK2+K)*totalsplaysqbendsq+K*totaltwistsq;
+
+  double cholestericfreeenergyxzplane =2*K*q0*twistxzplane; 
+  double nematicfreeenergyxzplane = (K1mK2+K)*splaysqbendsqxzplane+K*twistsqxzplane;
+
+  fprintf(filestats, "%s %e %e %e %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergy,cholestericfreeenergy,nematicfreeenergy+cholestericfreeenergy,nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistxzplane,splaysqbendsqxzplane,twistsqxzplane); 
 }  
 
 void SplayTwistBendDensities(int j, double& splaysq, double &twist, double &bend, double &twistsq)
