@@ -13,18 +13,18 @@
 #include <vector>
 
 
-#define BC 0 // Dirichlet boundary conditions on (1) or off (0)
+#define BC 1 // Dirichlet boundary conditions on (1) or off (0)
 
 // do we want to read in a file? If so, whats its name?
 enum InitialisationType {FROM_FUNCTION,FROM_FILE, FROM_SOLIDANGLE};
-const InitialisationType InitialisationMethod = FROM_FUNCTION;
+const InitialisationType InitialisationMethod = FROM_SOLIDANGLE;
 
 // simulation constants
-const int Nmax = 10000;       // Number of timesteps
+const int Nmax = 20000;       // Number of timesteps
 const int stepskip = 1000;    // print director file every stepskip timesteps
 const int stepskipstatistics = 100;    // print director file every stepskip timesteps
 const double Gamma=1;
-const double dt=0.1;
+const double dt=0.05;
 const double K=1; // this is K2;
 
 /* read in from config file */

@@ -193,6 +193,7 @@ void startconfig(void)
         if (k==Nx) {l++; k=0;}
         if (l==Ny) {m++; l=0;}
       }
+      break;
     }
     case FROM_FUNCTION:
     {
@@ -206,6 +207,7 @@ void startconfig(void)
         ny[j]=sin(theta)*sin(q0*m);
         nz[j]=cos(theta);
       }
+      break;
     }
   }
 
