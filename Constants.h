@@ -17,7 +17,7 @@ const int Nmax = 10000;       // Number of timesteps
 const int stepskip = 1000;    // print director file every stepskip timesteps
 const int stepskipstatistics = 100;    // print director file every stepskip timesteps
 const double Gamma=1;
-const double dt=0.01;
+const double dt=0.005;
 const double K=1; // this is K2;
 
 /* read in from config file */
@@ -46,10 +46,5 @@ extern std::vector<int> degrees;
 extern double Threshold_ninf_dot_n;
 // How thick the Hopfion Tube is
 extern double TubeRadius;
-
-/* read in from command line */
-
-extern double K1overK2;
-extern double doverp;
 
 #endif

@@ -13,7 +13,3 @@ double Threshold_ninf_dot_n;
 double Initialninftyx,Initialninftyy,Initialninftyz;
 std::vector<int> degrees(0);
 double TubeRadius;
-
-/* command line*/
-double K1overK2;
-double doverp;

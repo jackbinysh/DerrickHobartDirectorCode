@@ -38,33 +38,6 @@ int InitialiseSystemParameters()
         {
             ss << buff;
             getline(ss,buff2,'=');
-            ss >> Nx;
-        }
-        ss.str("");
-        ss.clear();
-
-        if(getline(CurveInputStream,buff))
-        {
-            ss << buff;
-            getline(ss,buff2,'=');
-            ss >> Ny;
-        }
-        ss.str("");
-        ss.clear();
-
-        if(getline(CurveInputStream,buff))
-        {
-            ss << buff;
-            getline(ss,buff2,'=');
-            ss >> Nz;
-        }
-        ss.str("");
-        ss.clear();
-
-        if(getline(CurveInputStream,buff))
-        {
-            ss << buff;
-            getline(ss,buff2,'=');
             ss >> Scaling;
         }
         ss.str("");

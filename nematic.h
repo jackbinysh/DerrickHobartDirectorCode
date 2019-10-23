@@ -9,7 +9,7 @@ extern std::string RunName;
 
 // summary stats functions
 void SplayTwistBendDensities(int j, double& splaysq, double &twist, double &bend, double &twistsq);
-void writeStatistics();  // output measurements
+void writeStatistics(FILE* fileStats);  // output measurements
 
 
 int i_vr(int l);

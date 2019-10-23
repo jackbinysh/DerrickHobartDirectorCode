@@ -47,7 +47,7 @@ std::string RunName;
 int main (int argc, char*argv[])
 {
   double doverp=(double) atof(argv[1]);
-  double koverk2 = atof(argv[2]); 
+  double K1overK2 = atof(argv[2]); 
   Nx=(int) atoi(argv[3]);
   Ny=(int) atoi(argv[4]);
   Nz=(int) atoi(argv[5]);
@@ -60,7 +60,7 @@ int main (int argc, char*argv[])
   // set the chirality
   q0=(2.f*M_PI/(float)(Nz))*doverp;
 
-  RunName = "doverp_"+std::to_string(doverp)+"_k3overk2_"+std::to_string(koverk2)+"_Nx_"+std::to_string(Nx)+"_Ny_"+std::to_string(Nx)+"_Nz_"+std::to_string(Nx);
+  RunName = "doverp_"+std::to_string(doverp)+"_k3overk2_"+std::to_string(K1overK2)+"_Nx_"+std::to_string(Nx)+"_Ny_"+std::to_string(Nx)+"_Nz_"+std::to_string(Nz);
 
   // knot stuff
   if(argc<2)
@@ -77,6 +77,14 @@ int main (int argc, char*argv[])
   initialise();
   startconfig();
 
+  // the summary stats file
+  char buf[128];
+  FILE *fileStats;
+  sprintf(buf,"%s/%s_summary_statistics.dat",output_dir.c_str(),RunName.c_str());
+  fileStats=fopen(buf,"a");
+  setbuf(fileStats, NULL);
+  fprintf(fileStats, "timestep  XZNematicFreeEnergy XZTwistFreeEnergy XZTwist XZSplayBend XZTwistsq  \n"); 
+
   cout << "starting simulation" << endl;
 #pragma omp parallel default(none) shared ()
   for (n=0; n<=Nmax; n++)
@@ -90,7 +98,7 @@ int main (int argc, char*argv[])
 
       if (n%stepskipstatistics==0)
       {
-        writeStatistics();  // output measurements
+        writeStatistics(fileStats);  // output measurements
       }
 
     }
@@ -322,7 +330,7 @@ void update(void)
 
 }//end update
 
-void writeStatistics()
+void writeStatistics(FILE* filestats)
 {
 
   double twistdensityxzplane=0; 
@@ -340,16 +348,9 @@ void writeStatistics()
     }   
   }
   double cholestericfreeenergyxzplane =2*K*q0*twistdensityxzplane; 
-  double nematicfreeenergyxzplane = (K1overK2)*K*splaysqbendsqdensityxzplane+K*twistsqdensityxzplane;
+  double nematicfreeenergyxzplane = (K1mK2+K)*splaysqbendsqdensityxzplane+K*twistsqdensityxzplane;
 
-  char buf[128];
-  FILE *fileStats;
-  sprintf(buf,"%s/%s_summary_statistics.dat",output_dir.c_str(),RunName.c_str());
-  fileStats=fopen(buf,"w");
-  setbuf(fileStats, NULL);
-
-  fprintf(fileStats, "timestep  XZNematicFreeEnergy XZTwistFreeEnergy XZTwist XZSplayBend XZTwistsq  \n"); 
-  fprintf(fileStats, "%s %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistdensityxzplane,splaysqbendsqdensityxzplane,twistsqdensityxzplane); 
+  fprintf(filestats, "%s %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistdensityxzplane,splaysqbendsqdensityxzplane,twistsqdensityxzplane); 
 }  
 
 void SplayTwistBendDensities(int j, double& splaysq, double &twist, double &bend, double &twistsq)
