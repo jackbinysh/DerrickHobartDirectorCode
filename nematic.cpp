@@ -107,7 +107,6 @@ void startconfig(void)
       alpha=0.0; // overly cautious!!
       viewpoint Point;
 
-      double LL=Nx*Ny*Nz;
       for (j=0; j<LL; j++) 
       {    
         double tempnx = 0.0;

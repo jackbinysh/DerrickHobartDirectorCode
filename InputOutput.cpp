@@ -12,6 +12,7 @@ int InitialiseSystemParameters(char*argv[])
     Nx=(int) atoi(argv[3]);
     Ny=(int) atoi(argv[4]);
     Nz=(int) atoi(argv[5]);
+    LL=Nx*Ny*Nz;
     output_dir = string(argv[6]);
     knot_filename= string(argv[7]);
     // set the elastic constants
