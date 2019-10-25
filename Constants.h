@@ -25,7 +25,7 @@ const int stepskip = 1000;    // print director file every stepskip timesteps
 const int stepskipstatistics = 100;    // print director file every stepskip timesteps
 const double Gamma=1;
 const double dt=0.05;
-const double K=1; // this is K2;
+const double K2=1; // this is K2;
 
 /* read in from config file */
 

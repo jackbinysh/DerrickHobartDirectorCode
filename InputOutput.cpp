@@ -16,7 +16,7 @@ int InitialiseSystemParameters(char*argv[])
     output_dir = string(argv[6]);
     knot_filename= string(argv[7]);
     // set the elastic constants
-    K1mK2 = (K1overK2)*K - K;
+    K1mK2 = (K1overK2)*K2 - K2;
     // K1 and K3 are the same
     K3mK2 =K1mK2;
     // set the chirality

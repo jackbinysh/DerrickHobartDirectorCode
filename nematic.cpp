@@ -54,8 +54,8 @@ int main (int argc, char*argv[])
   sprintf(buf,"%s/%s_summary_statistics.dat",output_dir.c_str(),RunName.c_str());
   fileStats=fopen(buf,"a");
   setbuf(fileStats, NULL);
-  // heres what is printed : fprintf(filestats, "%s %e %e %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergy,cholestericfreeenergy,nematicfreeenergy+cholestericfreeenergy,nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistxzplane,splaysqbendsqxzplane,twistsqxzplane); 
-  fprintf(fileStats, "timestep  NematicFreeEnergy CholestericFreeEnergy TotalFreeEnergy XZNematicFreeEnergy XZTwistFreeEnergy XZTwist XZSplayBend XZTwistsq\n"); 
+  //fprintf(filestats, "%s %e %e %e %e %e %e %e %e %e %e %e %e\n",std::to_string(n).c_str(),nematicfreeenergy,cholestericfreeenergy,nematicfreeenergy+cholestericfreeenergy,nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistxzplane,splaysqbendsqxzplane,twistsqxzplane,radius,leftedge,rightedge,height); 
+  fprintf(fileStats, "timestep  NematicFreeEnergy CholestericFreeEnergy TotalFreeEnergy XZNematicFreeEnergy XZTwistFreeEnergy XZTwist XZSplayBend XZTwistsq Radius LeftEdge RightEdge Height\n"); 
 
   cout << "starting simulation" << endl;
 #pragma omp parallel default(none) shared (n,fileStats)
@@ -262,9 +262,9 @@ void update(void)
     Dyznz = 0.25*(nz[yzuu]-nz[yzud]-nz[yzdu]+nz[yzdd]);
 
     // calculate molecular field
-    hx[j] = K*(Dxxnx+Dyynx+Dzznx) - 2.0*K*q0*(Dynz-Dzny);
-    hy[j] = K*(Dxxny+Dyyny+Dzzny) - 2.0*K*q0*(Dznx-Dxnz);
-    hz[j] = K*(Dxxnz+Dyynz+Dzznz) - 2.0*K*q0*(Dxny-Dynx);
+    hx[j] = K2*(Dxxnx+Dyynx+Dzznx) - 2.0*K2*q0*(Dynz-Dzny);
+    hy[j] = K2*(Dxxny+Dyyny+Dzzny) - 2.0*K2*q0*(Dznx-Dxnz);
+    hz[j] = K2*(Dxxnz+Dyynz+Dzznz) - 2.0*K2*q0*(Dxny-Dynx);
 
     // unequal elastic constants
     hx[j] += K1mK2*(Dxxnx+Dxyny+Dxznz);
@@ -335,13 +335,16 @@ void writeStatistics(FILE* filestats)
     }   
   }
 
-  double cholestericfreeenergy =K*q0*totaltwist; 
-  double nematicfreeenergy = 0.5*(K1mK2+K)*totalsplaysqbendsq+0.5*K*totaltwistsq;
+  double cholestericfreeenergy =K2*q0*totaltwist; 
+  double nematicfreeenergy = 0.5*(K1mK2+K2)*totalsplaysqbendsq+0.5*K2*totaltwistsq;
 
-  double cholestericfreeenergyxzplane =K*q0*twistxzplane; 
-  double nematicfreeenergyxzplane = 0.5*(K1mK2+K)*splaysqbendsqxzplane+0.5*K*twistsqxzplane;
+  double cholestericfreeenergyxzplane =K2*q0*twistxzplane; 
+  double nematicfreeenergyxzplane = 0.5*(K1mK2+K2)*splaysqbendsqxzplane+0.5*K2*twistsqxzplane;
 
-  fprintf(filestats, "%s %e %e %e %e %e %e %e %e \n",std::to_string(n).c_str(),nematicfreeenergy,cholestericfreeenergy,nematicfreeenergy+cholestericfreeenergy,nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistxzplane,splaysqbendsqxzplane,twistsqxzplane); 
+  double radius,leftedge,rightedge,height;
+  CalculateHopfionDimensionsXAxis(&radius,&leftedge,&rightedge,&height);
+
+  fprintf(filestats, "%s %e %e %e %e %e %e %e %e %e %e %e %e\n",std::to_string(n).c_str(),nematicfreeenergy,cholestericfreeenergy,nematicfreeenergy+cholestericfreeenergy,nematicfreeenergyxzplane,cholestericfreeenergyxzplane,twistxzplane,splaysqbendsqxzplane,twistsqxzplane,radius,leftedge,rightedge,height); 
 }  
 
 void SplayTwistBendDensities(int j, double& splaysq, double &twist, double &bend, double &twistsq)
@@ -401,6 +404,67 @@ void SplayTwistBendDensities(int j, double& splaysq, double &twist, double &bend
   twist = nx[j]*(Dynz-Dzny)+ny[j]*(Dznx-Dxnz)+nz[j]*(Dxny-Dynx);
   twistsq = twist*twist;
   return;
+}
+
+void CalculateHopfionDimensionsXAxis(double* radius,  double* leftedge, double* rightedge, double* height)
+{
+  double tol = 0.05;
+  float dir[4];
+  int jmid = (Ny-1)/2;
+  int kmid = (Nz-1)/2;
+
+  int istart = 0;
+
+  int isol=0;
+  int ileftedge = 0;
+  int irightedge = 0;
+  int kheight = 0;
+
+  for(int i=0;i<Nx;i++)
+  {
+    int l = Nx*Ny*kmid+Nx*jmid+i; 
+    double tempnz = nz[l]; 
+    if(tempnz < -1+tol) {ileftedge = i;break;}
+  }
+  // ileftedge contains the left edge of the z spike
+  for(int i=ileftedge;i<Nx;i++)
+  {
+    int l = Nx*Ny*kmid+Nx*jmid+i; 
+    double tempnz = nz[l]; 
+    if((i!=ileftedge) && tempnz > -1+tol) {irightedge = i;break;}
+  }
+  // irightedge contains the left edge of the z spike
+  isol =(ileftedge+irightedge)/2;
+
+  // now that we have the i value of its height, lets scan left and right to get the edges, defined as where n drops to 0
+  for(int i=isol;i<Nx;i++)
+  {
+      int l = Nx*Ny*kmid+Nx*jmid+i; 
+      // grab the director 
+      double tempnz = fabs(nz[l]);
+      if(tempnz <tol) {irightedge = i;break;}
+  }
+  for(int i=isol;i>0;i--)
+  {
+      int l = Nx*Ny*kmid+Nx*jmid+i; 
+      // grab the director 
+      double tempnz = fabs(nz[l]);
+      if(tempnz <tol) {ileftedge = i;break;}
+  }
+
+  // now lets scan up
+  for(int k=kmid;k<Nz;k++)
+  {
+    int l = Nx*Ny*k+Nx*jmid+isol; 
+    // grab the director 
+    double tempnz = fabs(nz[l]);
+    if(tempnz <tol) {kheight = k;break;}
+  }
+
+  *radius =fabs(isol-((Nx-1)/2)); 
+  *leftedge =fabs(ileftedge-isol); 
+  *rightedge =fabs(irightedge-isol); 
+  *height =fabs(kheight-kmid); 
 }
 
 

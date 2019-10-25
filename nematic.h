@@ -10,6 +10,7 @@ extern std::string RunName;
 // summary stats functions
 void SplayTwistBendDensities(int j, double& splaysq, double &twist, double &bend, double &twistsq);
 void writeStatistics(FILE* fileStats);  // output measurements
+void CalculateHopfionDimensionsXAxis(double* radius,  double* leftedge, double* rightedge, double* height);
 
 
 int i_vr(int l);
