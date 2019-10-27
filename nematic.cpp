@@ -160,6 +160,7 @@ void startconfig(void)
     }
     case FROM_FUNCTION:
     {
+      /*
       // the heliconical texture
       double theta=(M_PI/2) - 0.5;
       for (int j=0; j<LL; j++) 
@@ -169,6 +170,68 @@ void startconfig(void)
         nx[j]=sin(theta)*cos(q0*m);
         ny[j]=sin(theta)*sin(q0*m);
         nz[j]=cos(theta);
+      }
+      */
+
+
+      // Skyrmion anti skyrmion pair in the XZ plane 
+      double R0=0.5*(0.315*Nx)/2.0f; //x-position of skyrmion
+      double R=25; // the skyrmion radius
+      int k,l,m;
+      k=l=m=0;  
+      for (int j=0; j<LL; j++) 
+      {    
+        double tempnx = 0.0;
+        double tempny = 0.0;
+        double tempnz = 1.0;
+
+        double xcoord = x(k); //1.0*k-Nx/2.0+0.5;
+        double ycoord = y(l); //1.0*l-Ny/2.0+0.5;
+        double zcoord = z(m); //1.0*m-Nz/2.0+0.5;
+
+        // calculate the distance to the +ve coord skyrmion 
+        double rho = sqrt((xcoord-R0)*(xcoord-R0) +zcoord*zcoord);
+        // put a Skyrmion texture inside the tubular neighbourhood
+        if (rho < R)
+        {
+          double theta = atan2(zcoord,xcoord-R0); 
+          tempnx = sin(M_PI*rho/R)*sin(theta);
+          tempny = sin(M_PI*rho/R)*cos(theta);
+          tempnz = -cos(M_PI*rho/R);
+        }
+
+        
+        // calculate the distance to the -ve coord skyrmion 
+        rho = sqrt((xcoord+R0)*(xcoord+R0) +zcoord*zcoord);
+        // put a Skyrmion texture inside the tubular neighbourhood
+        if (rho < R)
+        {
+          double theta = atan2(zcoord,xcoord+R0); 
+          tempnx = -sin(M_PI*rho/R)*sin(theta);
+          tempny = sin(M_PI*rho/R)*cos(theta);
+          tempnz = -cos(M_PI*rho/R);
+        }
+
+#if BC // Dirichlet boundary conditions 
+        if (m==0) 
+        {
+          tempnx = 0.0;
+          tempny = 0.0;
+          tempnz = 1.0;
+        }
+        if (m==Nz-1)
+        { 
+          tempnx = 0.0;
+          tempny = 0.0;
+          tempnz = 1.0;
+        }
+#endif
+        nx[j]=tempnx;
+        ny[j]=tempny;
+        nz[j]=tempnz;
+        k++;
+        if (k==Nx) {l++; k=0;}
+        if (l==Ny) {m++; l=0;}
       }
       break;
     }
