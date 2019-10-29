@@ -17,6 +17,7 @@ struct Link;
 // reads in the user defined values set in "input.txt".
 int InitialiseSystemParameters(char*argv[]);
 // Initialises the point data read in from the input Link embedding - performs no geometric calculations whatsoever
+int InitialiseSolidAngle();
 int InitialiseFromFile(struct Link& Curve);
 int InitialiseFromFileNP(struct Link& CurveNP);
 

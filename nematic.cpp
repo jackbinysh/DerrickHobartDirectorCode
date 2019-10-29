@@ -85,6 +85,8 @@ void startconfig(void)
   {
     case FROM_SOLIDANGLE:
     {
+      InitialiseSolidAngle();
+
       int j,k,l,m;
       double omega,alpha,R,rho;
       // set initialisation type
@@ -173,6 +175,17 @@ void startconfig(void)
       }
       */
 
+      /*
+      // the uniform texture
+      double theta=(M_PI/2) - 0.5;
+      for (int j=0; j<LL; j++) 
+      {
+        // whats our 3D position?
+        nx[j]=0;
+        ny[j]=0;
+        nz[j]=1;
+      }
+      */
 
       // Skyrmion anti skyrmion pair in the XZ plane 
       double R0=0.5*(0.315*Nx)/2.0f; //x-position of skyrmion
