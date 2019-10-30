@@ -31,6 +31,7 @@ int n,LL;
 double *nx,*ny,*nz;
 double *hx,*hy,*hz;
 double K1mK2,K3mK2;
+double K1,K3;
 double q0;
 std::string RunName;
 
@@ -188,7 +189,8 @@ void startconfig(void)
       */
 
       // Skyrmion anti skyrmion pair in the XZ plane 
-      double R0=0.5*(0.315*Nx)/2.0f; //x-position of skyrmion
+      //double R0=0.5*(0.315*Nx)/2.0f; //x-position of skyrmion
+      double R0=0; //x-position of skyrmion
       double R=25; // the skyrmion radius
       int k,l,m;
       k=l=m=0;  
@@ -214,6 +216,7 @@ void startconfig(void)
         }
 
         
+        /*
         // calculate the distance to the -ve coord skyrmion 
         rho = sqrt((xcoord+R0)*(xcoord+R0) +zcoord*zcoord);
         // put a Skyrmion texture inside the tubular neighbourhood
@@ -224,6 +227,7 @@ void startconfig(void)
           tempny = sin(M_PI*rho/R)*cos(theta);
           tempnz = -cos(M_PI*rho/R);
         }
+        */
 
 #if BC // Dirichlet boundary conditions 
         if (m==0) 
@@ -262,7 +266,10 @@ void update(void)
   double Dxnx,Dynx,Dznx,Dxxnx,Dyynx,Dzznx,Dxynx,Dxznx,Dyznx;
   double Dxny,Dyny,Dzny,Dxxny,Dyyny,Dzzny,Dxyny,Dxzny,Dyzny;
   double Dxnz,Dynz,Dznz,Dxxnz,Dyynz,Dzznz,Dxynz,Dxznz,Dyznz;
+  // the mirror 2nd derivs
+  double Dyxnx, Dzxnx, Dzynx, Dyxny, Dzxny, Dzyny, Dyxnz, Dzxnz, Dzynz;
   double hdotn,sqrtndotn;
+
 
   int Lx=Nx;
   int Ly=Ny;
@@ -336,7 +343,21 @@ void update(void)
     Dxynz = 0.25*(nz[xyuu]-nz[xyud]-nz[xydu]+nz[xydd]);
     Dxznz = 0.25*(nz[xzuu]-nz[xzud]-nz[xzdu]+nz[xzdd]);
     Dyznz = 0.25*(nz[yzuu]-nz[yzud]-nz[yzdu]+nz[yzdd]);
-
+    
+    // set the mirror derivatives equal, for readability
+    Dyxnx=Dxynx;
+    Dzxnx=Dxznx;
+    Dzynx=Dyznx;
+              
+    Dyxny=Dxyny;
+    Dzxny=Dxzny;
+    Dzyny=Dyzny;
+              
+    Dyxnz=Dxynz;
+    Dzxnz=Dxznz;
+    Dzynz=Dyznz;
+    
+    
     /* GARETHS ORIGINAL IMPLEMENTATION*/
     /*
     // calculate molecular field
@@ -360,38 +381,65 @@ void update(void)
         -(Dznx-Dxnz)*(nx[j]*Dxnx+ny[j]*Dynx+nz[j]*Dznx)-(Dzny-Dynz)*(nx[j]*Dxny+ny[j]*Dyny+nz[j]*Dzny));
     */
 
-    /* JACKS NEW IMPLEMENTATION*/
-    // do things a la de Gennes and Prost, we write the molecular field in 3 parts
-    //TODO: THE CHOLESTERIC PART
+    /* JACKS NEW IMPLEMENTATION, do things a la de Gennes and Prost, we write the molecular field in 3 parts */
       
-    //Some common things we will need.  vector (Ax,Ay,Az) = curl(n). scalar A = twist(n)
-    Ax=(Dynz - Dzny);
-    Ay=(Dznx - Dxnz);
-    Az=(Dxny - Dynx);
-    A=nx[j]*Ax+ny[j]*Ay+nz[j]*Az;
+    /* Some common things we will need.*/
 
-    // splay part, implementing the expression h_b = K1 d_b(d_j n_j)
-    hsx=K1*(Dxxnx + Dxyny + Dxznz);
-    hsy=K1*(Dyxnx + Dyyny + Dyznz);
-    hsz=K1*(Dzxnx + Dzyny + Dzznz);
+    // vector (Ax,Ay,Az) = curl(n). scalar A = twist(n)
+    double Ax=(Dynz - Dzny);
+    double Ay=(Dznx - Dxnz);
+    double Az=(Dxny - Dynx);
+    double A=nx[j]*Ax+ny[j]*Ay+nz[j]*Az;
+    // and the bend vector B = (ndotgrad)n
+    double Bx = nx[j]*Dxnx + ny[j]*Dynx + nz[j]*Dznx;
+    double By = nx[j]*Dxny + ny[j]*Dyny + nz[j]*Dzny;
+    double Bz = nx[j]*Dxnz + ny[j]*Dynz + nz[j]*Dznz;
 
-    // twist part, implementing the expression h= -K2(2*A*curl(n) + grad(A)xn), where A = twist(n)
-    gradAx = 
-   
-    
-    
-    htx=-K2*(2*A*Ax+);
-    hty=-K2*(2*A*Ay+);
-    htz=-K2*(2*A*Az+);
+    /* okay now for the 3 parts, first the  splay part, implementing the expression h_b = K1 d_b(d_j n_j) */
 
-    // bend part
-    hbx=
-    hby=
-    hbz=
+    double graddivnx = Dxxnx + Dxyny + Dxznz;
+    double graddivny = Dyxnx + Dyyny + Dyznz;
+    double graddivnz = Dzxnx + Dzyny + Dzznz;
 
-    hx[j]=hsx+htx+hbx;
-    hy[j]=hsy+hty+hby;
-    hz[j]=hsz+htz+hbz;
+    double hsx=K1*graddivnx ;
+    double hsy=K1*graddivny ;
+    double hsz=K1*graddivnz ;
+
+    /* twist part, implementing the expression h= -K2(2*A*curl(n) + grad(A)xn), where A = twist(n) */
+
+    // first compute gradA
+    double gradAx = Dxnx*Ax+Dxny*Ay+Dxnz*Az + nx[j]*(Dxynz - Dxzny) + ny[j]*(Dxznx - Dxxnz) + nz[j]*(Dxxny - Dxynx); 
+    double gradAy = Dynx*Ax+Dyny*Ay+Dynz*Az + nx[j]*(Dyynz - Dyzny) + ny[j]*(Dyznx - Dyxnz) + nz[j]*(Dyxny - Dyynx); 
+    double gradAz = Dznx*Ax+Dzny*Ay+Dznz*Az + nx[j]*(Dzynz - Dzzny) + ny[j]*(Dzznx - Dzxnz) + nz[j]*(Dzxny - Dzynx); 
+
+    double rx,ry,rz;
+    cross(gradAx,gradAy,gradAz,nx[j],ny[j],nz[j],rx,ry,rz);
+
+    double htx=-K2*(2*A*Ax+rx);
+    double hty=-K2*(2*A*Ay+ry);
+    double htz=-K2*(2*A*Az+rz);
+
+    /* bend part, implementin the expression h = K3(Bxcurln + Acurln + grad(A)xn + laplacian(n) - grad(div n)) */
+
+    double px,py,pz;
+    cross(Bx,By,Bz,Ax,Ay,Az,px,py,pz);
+
+    K3=0;
+    double hbx= K3*(px + A*Ax + rx + (Dxxnx + Dyynx + Dzznx) - graddivnx);
+    double hby= K3*(py + A*Ay + ry + (Dxxny + Dyyny + Dzzny) - graddivny);
+    double hbz= K3*(pz + A*Az + rz + (Dxxnz + Dyynz + Dzznz) - graddivnz);
+
+    /* cholesteric part */
+
+    double hcholx = -2.0*K2*q0*(Dynz-Dzny);
+    double hcholy = -2.0*K2*q0*(Dznx-Dxnz);
+    double hcholz = -2.0*K2*q0*(Dxny-Dynx);
+
+    /* combine the lot */
+
+    hx[j]=hsx+htx+hbx+hcholx;
+    hy[j]=hsy+hty+hby+hcholy;
+    hz[j]=hsz+htz+hbz+hcholz;
 
     // remove part parallel to director
     hdotn = nx[j]*hx[j] + ny[j]*hy[j] + nz[j]*hz[j];
@@ -593,4 +641,11 @@ int j_vr(int l){
 //Line number in the z direction
 int k_vr(int l){
   return l/(Nx*Ny); 
+}
+
+inline void cross(double ax,double ay,double az,double bx,double by,double bz,double &rx,double &ry,double &rz)
+{
+  rx = ay*bz-az*by;
+  ry = az*bx-ax*bz;
+  rz = ax*by-ay*bx;
 }
