@@ -359,7 +359,12 @@ void update(void)
     
     
     /* GARETHS ORIGINAL IMPLEMENTATION*/
-    /*
+    
+    double K1mK2=0;
+    double K3mK2=1;
+    double K1=1;
+    double K3=1;
+
     // calculate molecular field
     hx[j] = K2*(Dxxnx+Dyynx+Dzznx) - 2.0*K2*q0*(Dynz-Dzny);
     hy[j] = K2*(Dxxny+Dyyny+Dzzny) - 2.0*K2*q0*(Dznx-Dxnz);
@@ -379,7 +384,12 @@ void update(void)
     hz[j] += K3mK2*(nx[j]*(nx[j]*Dxxnz+ny[j]*Dxynz+nz[j]*Dxznz)+ny[j]*(nx[j]*Dxynz+ny[j]*Dyynz+nz[j]*Dyznz)+nz[j]*(nx[j]*Dxznz+ny[j]*Dyznz+nz[j]*Dzznz)
         +(Dxnx+Dyny+Dznz)*(nx[j]*Dxnz+ny[j]*Dynz+nz[j]*Dznz)
         -(Dznx-Dxnz)*(nx[j]*Dxnx+ny[j]*Dynx+nz[j]*Dznx)-(Dzny-Dynz)*(nx[j]*Dxny+ny[j]*Dyny+nz[j]*Dzny));
-    */
+
+    double tempx,tempy,tempz;
+    tempx=hx[j];
+    tempy=hy[j];
+    tempz=hz[j];
+    
 
     /* JACKS NEW IMPLEMENTATION, do things a la de Gennes and Prost, we write the molecular field in 3 parts */
       
@@ -424,7 +434,6 @@ void update(void)
     double px,py,pz;
     cross(Bx,By,Bz,Ax,Ay,Az,px,py,pz);
 
-    K3=0;
     double hbx= K3*(px + A*Ax + rx + (Dxxnx + Dyynx + Dzznx) - graddivnx);
     double hby= K3*(py + A*Ay + ry + (Dxxny + Dyyny + Dzzny) - graddivny);
     double hbz= K3*(pz + A*Az + rz + (Dxxnz + Dyynz + Dzznz) - graddivnz);
