@@ -337,6 +337,8 @@ void update(void)
     Dxznz = 0.25*(nz[xzuu]-nz[xzud]-nz[xzdu]+nz[xzdd]);
     Dyznz = 0.25*(nz[yzuu]-nz[yzud]-nz[yzdu]+nz[yzdd]);
 
+    /* GARETHS ORIGINAL IMPLEMENTATION*/
+    /*
     // calculate molecular field
     hx[j] = K2*(Dxxnx+Dyynx+Dzznx) - 2.0*K2*q0*(Dynz-Dzny);
     hy[j] = K2*(Dxxny+Dyyny+Dzzny) - 2.0*K2*q0*(Dznx-Dxnz);
@@ -356,6 +358,40 @@ void update(void)
     hz[j] += K3mK2*(nx[j]*(nx[j]*Dxxnz+ny[j]*Dxynz+nz[j]*Dxznz)+ny[j]*(nx[j]*Dxynz+ny[j]*Dyynz+nz[j]*Dyznz)+nz[j]*(nx[j]*Dxznz+ny[j]*Dyznz+nz[j]*Dzznz)
         +(Dxnx+Dyny+Dznz)*(nx[j]*Dxnz+ny[j]*Dynz+nz[j]*Dznz)
         -(Dznx-Dxnz)*(nx[j]*Dxnx+ny[j]*Dynx+nz[j]*Dznx)-(Dzny-Dynz)*(nx[j]*Dxny+ny[j]*Dyny+nz[j]*Dzny));
+    */
+
+    /* JACKS NEW IMPLEMENTATION*/
+    // do things a la de Gennes and Prost, we write the molecular field in 3 parts
+    //TODO: THE CHOLESTERIC PART
+      
+    //Some common things we will need.  vector (Ax,Ay,Az) = curl(n). scalar A = twist(n)
+    Ax=(Dynz - Dzny);
+    Ay=(Dznx - Dxnz);
+    Az=(Dxny - Dynx);
+    A=nx[j]*Ax+ny[j]*Ay+nz[j]*Az;
+
+    // splay part, implementing the expression h_b = K1 d_b(d_j n_j)
+    hsx=K1*(Dxxnx + Dxyny + Dxznz);
+    hsy=K1*(Dyxnx + Dyyny + Dyznz);
+    hsz=K1*(Dzxnx + Dzyny + Dzznz);
+
+    // twist part, implementing the expression h= -K2(2*A*curl(n) + grad(A)xn), where A = twist(n)
+    gradAx = 
+   
+    
+    
+    htx=-K2*(2*A*Ax+);
+    hty=-K2*(2*A*Ay+);
+    htz=-K2*(2*A*Az+);
+
+    // bend part
+    hbx=
+    hby=
+    hbz=
+
+    hx[j]=hsx+htx+hbx;
+    hy[j]=hsy+hty+hby;
+    hz[j]=hsz+htz+hbz;
 
     // remove part parallel to director
     hdotn = nx[j]*hx[j] + ny[j]*hy[j] + nz[j]*hz[j];
