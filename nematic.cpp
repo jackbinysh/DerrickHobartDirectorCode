@@ -163,22 +163,34 @@ void startconfig(void)
     }
     case FROM_FUNCTION:
     {
+      
       /*
       // the heliconical texture
-      double theta=(M_PI/2) - 0.5;
+      double theta=(M_PI/2)-0.5;
+      double tempq0 = (2.f*M_PI/(float)(Nz));
       for (int j=0; j<LL; j++) 
       {
         // whats our 3D position?
+        int k = i_vr(j);
+        int l = j_vr(j);
         int m = k_vr(j);
-        nx[j]=sin(theta)*cos(q0*m);
-        ny[j]=sin(theta)*sin(q0*m);
+        nx[j]=sin(theta)*sin(tempq0*m);
+        ny[j]=sin(theta)*cos(tempq0*m);
         nz[j]=cos(theta);
+
+        //nx[j]=cos(theta);
+        //ny[j]=sin(theta)*sin(tempq0*k*k);
+        //nz[j]=sin(theta)*cos(tempq0*k*k);
+        //
+        
+       // nx[j]=sin(theta)*cos(tempq0*l*l);
+       // ny[j]=cos(theta);
+       // nz[j]=sin(theta)*sin(tempq0*l*l);
       }
       */
 
       /*
       // the uniform texture
-      double theta=(M_PI/2) - 0.5;
       for (int j=0; j<LL; j++) 
       {
         // whats our 3D position?
@@ -216,18 +228,16 @@ void startconfig(void)
         }
 
         
-        /*
-        // calculate the distance to the -ve coord skyrmion 
-        rho = sqrt((xcoord+R0)*(xcoord+R0) +zcoord*zcoord);
-        // put a Skyrmion texture inside the tubular neighbourhood
-        if (rho < R)
-        {
-          double theta = atan2(zcoord,xcoord+R0); 
-          tempnx = -sin(M_PI*rho/R)*sin(theta);
-          tempny = sin(M_PI*rho/R)*cos(theta);
-          tempnz = -cos(M_PI*rho/R);
-        }
-        */
+      //  // calculate the distance to the -ve coord skyrmion 
+      //  rho = sqrt((xcoord+R0)*(xcoord+R0) +zcoord*zcoord);
+      //  // put a Skyrmion texture inside the tubular neighbourhood
+      //  if (rho < R)
+      //  {
+      //    double theta = atan2(zcoord,xcoord+R0); 
+      //    tempnx = -sin(M_PI*rho/R)*sin(theta);
+      //    tempny = sin(M_PI*rho/R)*cos(theta);
+      //    tempnz = -cos(M_PI*rho/R);
+      //  }
 
 #if BC // Dirichlet boundary conditions 
         if (m==0) 
@@ -305,6 +315,9 @@ void update(void)
     if (m==Lz-1) {xup=j; xdwn=j; yup=j; ydwn=j; zup=j; zdwn=j;}
 #endif
 
+    double tempnyzup = ny[zup];
+    double tempnyzdwn = ny[zdwn];
+
     // calculate first order derivatives
     Dxnx = (nx[xup]-nx[xdwn])/2.0;
     Dynx = (nx[yup]-nx[ydwn])/2.0;
@@ -360,10 +373,9 @@ void update(void)
     
     /* GARETHS ORIGINAL IMPLEMENTATION*/
     
-    double K1mK2=0;
-    double K3mK2=1;
-    double K1=1;
-    double K3=1;
+    double K1mK2=0.1;
+    double K3mK2=0.1;
+    double K=1.0;
 
     // calculate molecular field
     hx[j] = K2*(Dxxnx+Dyynx+Dzznx) - 2.0*K2*q0*(Dynz-Dzny);
@@ -385,15 +397,63 @@ void update(void)
         +(Dxnx+Dyny+Dznz)*(nx[j]*Dxnz+ny[j]*Dynz+nz[j]*Dznz)
         -(Dznx-Dxnz)*(nx[j]*Dxnx+ny[j]*Dynx+nz[j]*Dznx)-(Dzny-Dynz)*(nx[j]*Dxny+ny[j]*Dyny+nz[j]*Dzny));
 
+    // remove part parallel to director
+    hdotn = nx[j]*hx[j] + ny[j]*hy[j] + nz[j]*hz[j];
+    hx[j] -= nx[j]*hdotn;
+    hy[j] -= ny[j]*hdotn;
+    hz[j] -= nz[j]*hdotn;
+
     double tempx,tempy,tempz;
     tempx=hx[j];
     tempy=hy[j];
     tempz=hz[j];
+
+    //JACKS NEW IMPLEMENTATION
+    double h1x=K*(Dxxnx + Dyynx + Dzznx);
+    double h1y=K*(Dxxny + Dyyny + Dzzny);
+    double h1z=K*(Dxxnz + Dyynz + Dzznz);
+
+    // molecular field of the twist part, implementing the expression h= -K2(2*A*curl(n) + grad(A)xn), where A = twist(n) 
+    double Ax=(Dynz - Dzny);
+    double Ay=(Dznx - Dxnz);
+    double Az=(Dxny - Dynx);
+    double A=nx[j]*Ax+ny[j]*Ay+nz[j]*Az;
+
+    // first compute gradA
+    double gradAx = Dxnx*Ax+Dxny*Ay+Dxnz*Az + nx[j]*(Dxynz - Dxzny) + ny[j]*(Dxznx - Dxxnz) + nz[j]*(Dxxny - Dxynx); 
+    double gradAy = Dynx*Ax+Dyny*Ay+Dynz*Az + nx[j]*(Dyynz - Dyzny) + ny[j]*(Dyznx - Dyxnz) + nz[j]*(Dyxny - Dyynx); 
+    double gradAz = Dznx*Ax+Dzny*Ay+Dznz*Az + nx[j]*(Dzynz - Dzzny) + ny[j]*(Dzznx - Dzxnz) + nz[j]*(Dzxny - Dzynx); 
+
+    double rx,ry,rz;
+    rx = gradAy*nz[j] -gradAz-ny[j];
+    ry = gradAz*nx[j] -gradAx-nz[j];
+    rz = gradAx*ny[j] -gradAy-nx[j];
+
+    double htx=-(K2-K)*(2*A*Ax+rx);
+    double hty=-(K2-K)*(2*A*Ay+ry);
+    double htz=-(K2-K)*(2*A*Az+rz);
+
+    hx[j]=h1x+htx;
+    hy[j]=h1y+hty;
+    hz[j]=h1z+htz;
+
+    // remove part parallel to director
+    hdotn = nx[j]*hx[j] + ny[j]*hy[j] + nz[j]*hz[j];
+    hx[j] -= nx[j]*hdotn;
+    hy[j] -= ny[j]*hdotn;
+    hz[j] -= nz[j]*hdotn;
+
+    double temp3x,temp3y,temp3z;
+    temp3x=hx[j];
+    temp3y=hy[j];
+    temp3z=hz[j];
+    temp3z=hz[j];
     
 
-    /* JACKS NEW IMPLEMENTATION, do things a la de Gennes and Prost, we write the molecular field in 3 parts */
+    /*
+    //JACKS NEW IMPLEMENTATION, do things a la de Gennes and Prost, we write the molecular field in 3 parts 
       
-    /* Some common things we will need.*/
+    // Some common things we will need.
 
     // vector (Ax,Ay,Az) = curl(n). scalar A = twist(n)
     double Ax=(Dynz - Dzny);
@@ -405,7 +465,7 @@ void update(void)
     double By = nx[j]*Dxny + ny[j]*Dyny + nz[j]*Dzny;
     double Bz = nx[j]*Dxnz + ny[j]*Dynz + nz[j]*Dznz;
 
-    /* okay now for the 3 parts, first the  splay part, implementing the expression h_b = K1 d_b(d_j n_j) */
+    // okay now for the 3 parts, first the  splay part, implementing the expression h_b = K1 d_b(d_j n_j) 
 
     double graddivnx = Dxxnx + Dxyny + Dxznz;
     double graddivny = Dyxnx + Dyyny + Dyznz;
@@ -415,7 +475,7 @@ void update(void)
     double hsy=K1*graddivny ;
     double hsz=K1*graddivnz ;
 
-    /* twist part, implementing the expression h= -K2(2*A*curl(n) + grad(A)xn), where A = twist(n) */
+    // twist part, implementing the expression h= -K2(2*A*curl(n) + grad(A)xn), where A = twist(n) 
 
     // first compute gradA
     double gradAx = Dxnx*Ax+Dxny*Ay+Dxnz*Az + nx[j]*(Dxynz - Dxzny) + ny[j]*(Dxznx - Dxxnz) + nz[j]*(Dxxny - Dxynx); 
@@ -429,7 +489,7 @@ void update(void)
     double hty=-K2*(2*A*Ay+ry);
     double htz=-K2*(2*A*Az+rz);
 
-    /* bend part, implementin the expression h = K3(Bxcurln + Acurln + grad(A)xn + laplacian(n) - grad(div n)) */
+    // bend part, implementin the expression h = K3(Bxcurln + Acurln + grad(A)xn + laplacian(n) - grad(div n)) 
 
     double px,py,pz;
     cross(Bx,By,Bz,Ax,Ay,Az,px,py,pz);
@@ -438,23 +498,31 @@ void update(void)
     double hby= K3*(py + A*Ay + ry + (Dxxny + Dyyny + Dzzny) - graddivny);
     double hbz= K3*(pz + A*Az + rz + (Dxxnz + Dyynz + Dzznz) - graddivnz);
 
-    /* cholesteric part */
+    // cholesteric part 
 
     double hcholx = -2.0*K2*q0*(Dynz-Dzny);
     double hcholy = -2.0*K2*q0*(Dznx-Dxnz);
     double hcholz = -2.0*K2*q0*(Dxny-Dynx);
 
-    /* combine the lot */
+    // combine the lot 
 
     hx[j]=hsx+htx+hbx+hcholx;
     hy[j]=hsy+hty+hby+hcholy;
     hz[j]=hsz+htz+hbz+hcholz;
 
+
     // remove part parallel to director
-    hdotn = nx[j]*hx[j] + ny[j]*hy[j] + nz[j]*hz[j];
-    hx[j] -= nx[j]*hdotn;
-    hy[j] -= ny[j]*hdotn;
-    hz[j] -= nz[j]*hdotn;
+   // hdotn = nx[j]*hx[j] + ny[j]*hy[j] + nz[j]*hz[j];
+   // hx[j] -= nx[j]*hdotn;
+   // hy[j] -= ny[j]*hdotn;
+   // hz[j] -= nz[j]*hdotn;
+
+    double temp3x,temp3y,temp3z;
+    temp3x=hx[j];
+    temp3y=hy[j];
+    temp3z=hz[j];
+    temp3z=hz[j];
+    */
 
 #if BC // Dirichlet boundary conditions along z
     if (m==0) {hx[j] = 0.0; hy[j] = 0.0; hz[j] = 0.0;}
