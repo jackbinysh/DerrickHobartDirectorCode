@@ -280,7 +280,6 @@ void update(void)
   double Dyxnx, Dzxnx, Dzynx, Dyxny, Dzxny, Dzyny, Dyxnz, Dzxnz, Dzynz;
   double hdotn,sqrtndotn;
 
-
   int Lx=Nx;
   int Ly=Ny;
   int Lz=Nz;
@@ -315,8 +314,6 @@ void update(void)
     if (m==Lz-1) {xup=j; xdwn=j; yup=j; ydwn=j; zup=j; zdwn=j;}
 #endif
 
-    double tempnyzup = ny[zup];
-    double tempnyzdwn = ny[zdwn];
 
     // calculate first order derivatives
     Dxnx = (nx[xup]-nx[xdwn])/2.0;
@@ -372,10 +369,6 @@ void update(void)
     
     
     /* GARETHS ORIGINAL IMPLEMENTATION*/
-    
-    double K1mK2=0.1;
-    double K3mK2=0.1;
-    double K=1.0;
 
     // calculate molecular field
     hx[j] = K2*(Dxxnx+Dyynx+Dzznx) - 2.0*K2*q0*(Dynz-Dzny);
@@ -403,11 +396,7 @@ void update(void)
     hy[j] -= ny[j]*hdotn;
     hz[j] -= nz[j]*hdotn;
 
-    double tempx,tempy,tempz;
-    tempx=hx[j];
-    tempy=hy[j];
-    tempz=hz[j];
-
+    /*
     //JACKS NEW IMPLEMENTATION
     double h1x=K*(Dxxnx + Dyynx + Dzznx);
     double h1y=K*(Dxxny + Dyyny + Dzzny);
@@ -448,7 +437,7 @@ void update(void)
     temp3y=hy[j];
     temp3z=hz[j];
     temp3z=hz[j];
-    
+    */
 
     /*
     //JACKS NEW IMPLEMENTATION, do things a la de Gennes and Prost, we write the molecular field in 3 parts 
